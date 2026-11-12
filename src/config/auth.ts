@@ -11,10 +11,10 @@ const db = client.db(process.env.DB_NAME || "kindconnect");
 export const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
 
-  // Current secret from .env
+  // Previous secret for legacy encrypted data
   secret: process.env.BETTER_AUTH_SECRET_OLD,
 
-  // Keep the previous secret temporarily for decrypting existing data.
+  // Current secret
   secrets: [
     {
       version: 2,
@@ -27,6 +27,15 @@ export const auth = betterAuth({
   trustedOrigins: [
     process.env.CLIENT_URL || "http://localhost:3000",
   ],
+
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite:
+        process.env.NODE_ENV === "production" ? "none" : "lax",
+      secure: process.env.NODE_ENV === "production",
+      httpOnly: true,
+    },
+  },
 
   emailAndPassword: {
     enabled: true,
