@@ -6,15 +6,21 @@ import { jwt } from "better-auth/plugins";
 import { getMongoClient } from "./db.js";
 
 const client = getMongoClient();
-
 const db = client.db(process.env.DB_NAME || "kindconnect");
 
 export const auth = betterAuth({
-  database: mongodbAdapter(db, {
-    client,
-  }),
+  database: mongodbAdapter(db, { client }),
 
-  secret: process.env.BETTER_AUTH_SECRET,
+  // Current secret from .env
+  secret: process.env.BETTER_AUTH_SECRET_OLD,
+
+  // Keep the previous secret temporarily for decrypting existing data.
+  secrets: [
+    {
+      version: 2,
+      value: process.env.BETTER_AUTH_SECRET!,
+    },
+  ],
 
   baseURL: process.env.BETTER_AUTH_URL,
 
@@ -36,31 +42,27 @@ export const auth = betterAuth({
 
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path !== "/sign-up/email") {
-        return;
-      }
+      if (ctx.path !== "/sign-up/email") return;
 
       const password = ctx.body?.password;
 
-      if (typeof password !== "string") {
-        return;
-      }
+      if (typeof password !== "string") return;
 
       if (!/[A-Z]/.test(password)) {
         throw new APIError("BAD_REQUEST", {
-          message: "Password must contain at least one uppercase letter",
+          message:
+            "Password must contain at least one uppercase letter",
         });
       }
 
       if (!/[a-z]/.test(password)) {
         throw new APIError("BAD_REQUEST", {
-          message: "Password must contain at least one lowercase letter",
+          message:
+            "Password must contain at least one lowercase letter",
         });
       }
     }),
   },
 
-  plugins: [
-    jwt(),
-  ],
+  plugins: [jwt()],
 });
