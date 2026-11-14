@@ -5,28 +5,34 @@ import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { jwt } from "better-auth/plugins";
 import { getMongoClient } from "./db.js";
 
+const secret = process.env.BETTER_AUTH_SECRET;
+
+if (!secret || secret.length < 32) {
+  throw new Error(
+    "BETTER_AUTH_SECRET must be at least 32 characters long"
+  );
+}
+
+const baseURL = process.env.BETTER_AUTH_URL;
+
+if (!baseURL) {
+  throw new Error("BETTER_AUTH_URL is missing");
+}
+
+const clientURL =
+  process.env.CLIENT_URL || "http://localhost:3000";
+
 const client = getMongoClient();
 const db = client.db(process.env.DB_NAME || "kindconnect");
 
 export const auth = betterAuth({
   database: mongodbAdapter(db, { client }),
 
-  // Previous secret for legacy encrypted data
-  secret: process.env.BETTER_AUTH_SECRET_OLD,
+  secret,
 
-  // Current secret
-  secrets: [
-    {
-      version: 2,
-      value: process.env.BETTER_AUTH_SECRET!,
-    },
-  ],
+  baseURL,
 
-  baseURL: process.env.BETTER_AUTH_URL,
-
-  trustedOrigins: [
-    process.env.CLIENT_URL || "http://localhost:3000",
-  ],
+  trustedOrigins: [clientURL],
 
   advanced: {
     defaultCookieAttributes: {
